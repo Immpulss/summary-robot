@@ -12,9 +12,12 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.post('/api/summary', async (req, res) => {
-  const { title, author } = req.body;
+  const { title, author, description } = req.body;
 
-  const prompt = `Write a professional literary summary in under 260 characters, including spaces, for a bookstore display card. Do not include the title '${title}' or the author '${author}' in the summary. The tone should be formal, like something from The New York Times.`;
+  const prompt = `Write a short bookstore shelftalker in under 260 characters, including spaces, for a bookstore display card. Do not include the title '${title}' or the author '${author}' in the summary. The tone should be natural, specific and appealing, not robotic or overly dramatic. Use only the description below. Do not invent plot details, themes, or characters.
+  Title: ${title}
+  Author: ${author}
+  Description: ${description}`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -24,7 +27,7 @@ app.post('/api/summary', async (req, res) => {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4.1-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7
       })
