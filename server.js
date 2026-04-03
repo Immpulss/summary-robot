@@ -14,9 +14,14 @@ app.use(bodyParser.json());
 app.post('/api/summary', async (req, res) => {
   const { title, author, description } = req.body;
 
-  const prompt = `Write a short bookstore shelftalker in under 260 characters, including spaces, for a bookstore display card. Do not include the title '${title}' or the author '${author}' in the summary. The tone should be natural, specific and appealing, not robotic or overly dramatic. Use only the description below. Do not invent plot details, themes, or characters.
-  Title: ${title}
-  Author: ${author}
+  const prompt = `You are a bookseller writing a short shelftalker card for customers browsing in a bookstore. Write 1-3 sentences with a max of 260 characters, including spaces. 
+  Rules:
+  -Use ONLY the description below
+  -Do Not invent anything. Do not make up characters, plot points or genres.
+  -Be specific and natural, not generic
+  -Avoid stock phrases like "a thrilling tale", "explores themes" or "readers will be captivated" and other cliched phrases.
+  -Make it feel like a real human recommendation.
+  
   Description: ${description}`;
 
   try {
@@ -29,7 +34,7 @@ app.post('/api/summary', async (req, res) => {
       body: JSON.stringify({
         model: 'gpt-4.1-mini',
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7
+        temperature: 0.5
       })
     });
 
