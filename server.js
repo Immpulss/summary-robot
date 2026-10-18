@@ -18,7 +18,7 @@ export function createApp({ fetcher = fetch, apiKey = process.env.OPENAI_API_KEY
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeout);
     try {
-      for (let attempt = 0; attempt < 2; attempt++) {
+      for (let attempt = 0; attempt < 3; attempt++) {
         const response = await fetcher('https://api.openai.com/v1/chat/completions', {
           method: 'POST', signal: controller.signal,
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -32,7 +32,7 @@ export function createApp({ fetcher = fetch, apiKey = process.env.OPENAI_API_KEY
         const summary = data.choices?.[0]?.message?.content;
         if (validSummary(summary)) return res.json({ summary: summary.trim() });
         if (typeof summary !== 'string' || !summary.trim()) break;
-        messages.push({ role: 'assistant', content: summary }, { role: 'user', content: 'Rewrite this in at most 260 characters including spaces. Preserve only facts supported by the original description.' });
+        messages.push({ role: 'assistant', content: summary }, { role: 'user', content: `Your previous response was ${summary.trim().length} characters. Rewrite it as ONE complete sentence of at most ${attempt === 0 ? 180 : 140} characters including spaces. Keep only the central premise, omit secondary details, and use only facts supported by the original description. Return only that sentence.` });
       }
       return res.status(502).json({ error: 'A valid summary under 260 characters could not be produced. Please try again.' });
     } catch (error) {
