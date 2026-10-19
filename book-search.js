@@ -3,6 +3,16 @@
 const DOMAINS = ['simonandschuster.com','penguinrandomhouse.com','penguinrandomhouselibrary.com','hachettebookgroup.com','harpercollins.com','harpercollinschildrens.com','macmillan.com','scholastic.com','bloomsbury.com','sourcebooks.com'];
 const text = value => typeof value === 'string' ? value.replace(/<[^>]*>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/\s+/g,' ').trim() : '';
 const norm = value => text(value).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+export function sameAuthor(left, right) {
+    if (typeof left !== 'string' || typeof right !== 'string' || !left.trim() || !right.trim()) return false;
+    const parts = value => value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').trim().split(/\s+/);
+    const a = parts(left), b = parts(right);
+    if (a.join(' ') === b.join(' ')) return true;
+    if (a.length < 2 || b.length < 2 || a[0] !== b[0] || a.at(-1) !== b.at(-1)) return false;
+    const am = a.slice(1, -1), bm = b.slice(1, -1);
+    if (!am.length || !bm.length) return true;
+    return am.length === bm.length && am.every((name, i) => name === bm[i] || (name.length === 1 && bm[i].startsWith(name)) || (bm[i].length === 1 && name.startsWith(bm[i])));
+  }
 function publisherURL(raw) {
  try { const u=new URL(raw);return u.protocol==='https:' && !u.username && !u.password && !u.port && DOMAINS.some(d=>u.hostname===d || u.hostname.endsWith('.'+d)) ? u : null; } catch { return null; }
 }
@@ -55,7 +65,7 @@ export function createBookSearch({fetcher,apiKey,timeout=40000,now=Date.now,dail
      throw new Error('No verified publisher record was found.');
     }
     if(query.isbn && !url.pathname.replace(/-/g,'').includes(query.isbn))throw new Error('The publisher record did not verify this ISBN.');
-    if(!query.isbn && (norm(found.title)!==norm(query.title)||norm(found.author)!==norm(query.author)))throw new Error('The publisher record did not match the title and author.');
+    if(!query.isbn && (norm(found.title)!==norm(query.title)||!sameAuthor(found.author,query.author)))throw new Error('The publisher record did not match the title and author.');
     let description='',warnings=[];
     // Fetch only allowlisted public publisher URLs, checking every redirect.
     try {

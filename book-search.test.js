@@ -34,3 +34,11 @@ test('daily search cap prevents additional billed requests',async()=>{
  let n=0;const find=createBookSearch({apiKey:'test',dailyLimit:1,fetcher:async()=>{n++;return {ok:false,status:429}}});
  await assert.rejects(find({isbn}));await assert.rejects(find({isbn:'9780316003957'}),/daily/);assert.equal(n,1);
 });
+
+test('web matching permits omitted middle initial without accepting conflicting identities',async()=>{
+ const {sameAuthor}=await import('./book-search.js');assert.equal(sameAuthor('Jennifer Nielsen','Jennifer A. Nielsen'),true);assert.equal(sameAuthor('Jennifer A Nielsen','Jennifer B Nielsen'),false);assert.equal(sameAuthor('Jennifer Nielsen','John Nielsen'),false);
+ const url='https://www.scholastic.com/books/words-on-fire';
+ const b={title:'Words on Fire',author:'Jennifer A. Nielsen',sourceURL:url,description};
+ const find=createBookSearch({apiKey:'test',fetcher:async u=>u.includes('openai.com')?result(b,url):{ok:false,status:403}});
+ const found=await find({title:'Words on fire',author:'Jennifer Nielsen'});assert.equal(found.author,'Jennifer A. Nielsen');assert.equal(found.description,'');
+});
