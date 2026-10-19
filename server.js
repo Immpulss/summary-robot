@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
+import { createBookSearch, validateSearch } from './book-search.js';
 import { validateInput, validSummary, messagesFor } from './summary.js';
 dotenv.config();
 
@@ -10,6 +11,22 @@ export function createApp({ fetcher = fetch, apiKey = process.env.OPENAI_API_KEY
   app.use(cors());
   app.use(express.json({ limit: '100kb' }));
   app.get('/health', (req, res) => res.json({ status: 'ok' }));
+  const findBook = createBookSearch({ fetcher, apiKey });
+  const searchWindows = new Map();
+  app.post('/api/book-search', async (req, res) => {
+    try { validateSearch(req.body); } catch (error) { return res.status(400).json({error:error.message}); }
+    const client=req.ip, minute=Math.floor(Date.now()/60000);
+    if(searchWindows.size>1000)searchWindows.clear();
+    const window=searchWindows.get(client);
+    const count=window?.minute===minute ? window.count+1 : 1;
+    searchWindows.set(client,{minute,count});
+    if(count>6)return res.status(429).json({error:'Please wait a minute before another web lookup.'});
+    try { res.json(await findBook(req.body)); }
+    catch(error){
+      console.error(JSON.stringify({event:'book_web_lookup_failed',type:error.name,status:error.status||502}));
+      res.status(error.status || (error.name==='AbortError'?504:502)).json({error:error.name==='AbortError'?'The web lookup took too long. Please try again.':error.message});
+    }
+  });
   app.post('/api/summary', async (req, res) => {
     const invalid = validateInput(req.body);
     if (invalid) return res.status(400).json({ error: invalid });
