@@ -38,7 +38,7 @@ export function createBookSearch({fetcher,apiKey,timeout=40000,now=Date.now,dail
       input:JSON.stringify(query)})});
     if(!response.ok){
      const failure=await response.json().catch(()=>({}));
-     console.error(JSON.stringify({event:'book_search_upstream_error',status:response.status,code:failure.error?.code,type:failure.error?.type,param:failure.error?.param}));
+     console.error(JSON.stringify({event:'book_search_upstream_error',status:response.status,code:failure.error?.code,type:failure.error?.type,param:failure.error?.param,detail:response.status===400?String(failure.error?.message||'').slice(0,400):undefined}));
      throw Object.assign(new Error(response.status===429?'Web search is busy or has reached its usage limit.':'The web-search service could not complete the lookup.'),{status:response.status===429?429:502});
     }
     const data=await response.json(),sources=new Set(),parts=[];
