@@ -48,7 +48,12 @@ export function createBookSearch({fetcher,apiKey,timeout=40000,now=Date.now,dail
     }
     let found;try{found=JSON.parse(parts.join('').replace(/^```(?:json)?\s*|\s*```$/g,''));}catch{throw new Error('Web search did not return a verified book record.');}
     const url=publisherURL(found.sourceURL);
-    if(!url||!sources.has(found.sourceURL)||!text(found.title)||!text(found.author))throw new Error('No verified publisher record was found.');
+    const canonical = raw => {try{const u=new URL(raw);return u.origin+u.pathname.replace(/\/$/,'');}catch{return '';}};
+    const cited = [...sources].some(source=>canonical(source)===canonical(found.sourceURL));
+    if(!url||!cited||!text(found.title)||!text(found.author)){
+     console.log(JSON.stringify({event:'book_search_unverified_result',candidate:found.sourceURL?canonical(found.sourceURL):null,hasTitle:!!found.title,hasAuthor:!!found.author,sources:[...sources].slice(0,8).map(canonical),outputTypes:(data.output||[]).map(x=>x.type)}));
+     throw new Error('No verified publisher record was found.');
+    }
     if(query.isbn && !url.pathname.replace(/-/g,'').includes(query.isbn))throw new Error('The publisher record did not verify this ISBN.');
     if(!query.isbn && (norm(found.title)!==norm(query.title)||norm(found.author)!==norm(query.author)))throw new Error('The publisher record did not match the title and author.');
     let description='',warnings=[];
