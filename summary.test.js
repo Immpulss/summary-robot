@@ -27,3 +27,10 @@ test('overlength responses are shortened automatically with measured feedback an
  }});
  assert.equal(n,3);assert.equal(r.status,200);assert.equal(r.body.summary,'Four children investigate a mystery.');
 });
+
+test('disabled web search blocks stale clients without calling OpenAI',async()=>{
+ let called=false;const server=createApp({apiKey:'test',fetcher:async()=>{called=true}}).listen(0,'127.0.0.1');
+ await new Promise(r=>server.on('listening',r));
+ try{const r=await fetch(`http://127.0.0.1:${server.address().port}/api/book-search`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({isbn:'9781665932578'})});assert.equal(r.status,410);assert.equal(called,false);}
+ finally{await new Promise(r=>server.close(r));}
+});
